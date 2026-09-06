@@ -1,7 +1,8 @@
 """
 1초 D·H와 자물쇠.
 
-D는 대금 비율만 본다. 체결 건수는 타점 선이 아니라 자물쇠다.
+D는 대금 비율만 본다. 체결 건수는 타점 선이 아니다.
+자물쇠 1층 = 얇지 않음. 확인 2층 = 빈도·대금이 평소보다 늘고 있음.
 빈 초의 D는 0.5로 채우지 않는다.
 """
 
@@ -27,6 +28,11 @@ class LockConfig:
     slow_ema: int = 18
     signal_ema: int = 6
     d_buy: float = 0.5
+    # 매수 확인(2층). 자물쇠(1층)보다 빡빡하다. 매도에 쓰지 않음.
+    freq_confirm_mult: float = 2.5  # 창 건수 >= 평소 1초 건수 × 창 × 이 값
+    notional_confirm_mult: float = 1.5  # 창 대금 >= 평소 1초 대금 × 창 × 이 값
+    freq_already_thick: float = 8.0  # 평소가 이미 초당 이 건 이상이면 가속 대신 유지
+    min_confirm_per_sec: float = 6.0  # 가속 확인의 절대 하한 (2~3 → 10 을 염두)
 
 
 @dataclass
@@ -42,6 +48,7 @@ class SupplySnapshot:
     """장중 저장. 3분봉으로는 복원 불가한 1초 수급만 담는다."""
 
     typical: float
+    typical_trades: float
     typical_samples: int
     fast: Optional[float]
     slow: Optional[float]
@@ -64,6 +71,9 @@ class SecondState:
     typical: float
     lock_ok: bool
     lock_reason: str
+    confirm_ok: bool
+    confirm_reason: str
+    typical_trades: float
     d_streak: int
     h_rising_streak: int
 
@@ -76,6 +86,7 @@ class PointDecision:
     fade_ok: bool  # H가 양수에서 처음 줄어듦
     dump_flow: bool  # H가 음수이며 깊어짐 (보유 중 참고)
     lock_ok: bool
+    confirm_ok: bool
     hd_ready: bool
     opening_box_wait: bool
     restart_wait: bool
@@ -96,6 +107,7 @@ class SupplyEngine:
         self.cfg = cfg or LockConfig()
         self.ticks: Deque[SecondTick] = deque(maxlen=4000)
         self.typical: Optional[float] = None
+        self.typical_trades: Optional[float] = None
         self.typical_samples: int = 0
         self.fast: Optional[float] = None
         self.slow: Optional[float] = None
@@ -110,6 +122,7 @@ class SupplyEngine:
     def reset(self, now: Optional[datetime] = None, restored: bool = False) -> None:
         self.ticks.clear()
         self.typical = None
+        self.typical_trades = None
         self.typical_samples = 0
         self.fast = None
         self.slow = None
@@ -134,6 +147,7 @@ class SupplyEngine:
             return None
         return SupplySnapshot(
             typical=self.typical,
+            typical_trades=self.typical_trades or 0.0,
             typical_samples=self.typical_samples,
             fast=self.fast,
             slow=self.slow,
@@ -146,6 +160,7 @@ class SupplyEngine:
         """같은 날 저장본. 어제 1초와는 잇지 말 것."""
         self.reset(now, restored=True)
         self.typical = snap.typical
+        self.typical_trades = snap.typical_trades if snap.typical_trades > 0 else None
         self.typical_samples = snap.typical_samples
         self.fast = snap.fast
         self.slow = snap.slow
@@ -170,6 +185,9 @@ class SupplyEngine:
                 typical=snap.typical,
                 lock_ok=False,
                 lock_reason="복원 직후 산 초를 기다리는 중",
+                confirm_ok=False,
+                confirm_reason="복원 직후 산 초를 기다리는 중",
+                typical_trades=snap.typical_trades,
                 d_streak=0,
                 h_rising_streak=0,
             )
@@ -201,6 +219,12 @@ class SupplyEngine:
                 self.typical = notional
             else:
                 self.typical = _ema_update(self.typical, notional, self.cfg.typical_ema_secs)
+            if self.typical_trades is None:
+                self.typical_trades = float(tick.trades)
+            else:
+                self.typical_trades = _ema_update(
+                    self.typical_trades, float(tick.trades), self.cfg.typical_ema_secs
+                )
             self.typical_samples += 1
             speed = notional / max(self.typical, 1e-9)
             i = (2.0 * d - 1.0) * speed
@@ -212,6 +236,7 @@ class SupplyEngine:
         h = macd - (self.signal or 0.0)
 
         lock_ok, lock_reason = self._lock(tick.t)
+        confirm_ok, confirm_reason = self._confirm(tick.t)
         d_streak = self._d_streak()
         prev_h = self.prev_h
         if prev_h is None:
@@ -236,6 +261,9 @@ class SupplyEngine:
             typical=self.typical or 0.0,
             lock_ok=lock_ok,
             lock_reason=lock_reason,
+            confirm_ok=confirm_ok,
+            confirm_reason=confirm_reason,
+            typical_trades=self.typical_trades or 0.0,
             d_streak=d_streak,
             h_rising_streak=h_rising,
         )
@@ -264,6 +292,49 @@ class SupplyEngine:
             return False, "창 대금이 평소·하한보다 작음"
         return True, "자물쇠 열림"
 
+    def _window_ending(self, end: datetime) -> List[SecondTick]:
+        cut = end - timedelta(seconds=self.cfg.window_secs - 1)
+        return [x for x in self.ticks if cut <= x.t <= end]
+
+    def _confirm(self, now: datetime) -> tuple[bool, str]:
+        """매수 2층. 빈도가 늘고 대금도 같이 커지는지. 1주 연타는 대금에서 걸러진다."""
+        w = self._window(now)
+        if len(w) < self.cfg.window_secs:
+            return False, "확인 창이 아직 안 참"
+        if any(x.trades <= 0 or (x.buy_amt + x.sell_amt) <= 0 for x in w):
+            return False, "빈 초가 있어 빈도 가속을 인정하지 않음"
+        trades = sum(x.trades for x in w)
+        notion = sum(x.buy_amt + x.sell_amt for x in w)
+        prev_end = now - timedelta(seconds=self.cfg.window_secs)
+        prev = self._window_ending(prev_end)
+        prev_ready = len(prev) >= self.cfg.window_secs
+        prev_trades = sum(x.trades for x in prev) if prev_ready else 0
+        prev_notion = sum(x.buy_amt + x.sell_amt for x in prev) if prev_ready else 0.0
+
+        typ_n = self.typical or 0.0
+        typ_t = self.typical_trades or 0.0
+        if prev_ready and notion < prev_notion:
+            return False, "대금이 직전 창보다 줄었음"
+
+        already = typ_t >= self.cfg.freq_already_thick and trades >= typ_t * self.cfg.window_secs
+        if already:
+            if typ_n and notion < typ_n * self.cfg.window_secs:
+                return False, "이미 두꺼운데 대금이 평소 아래로 줄었음"
+            return True, "이미 두꺼운 호가 유지 + 대금 확인"
+
+        need_n = typ_n * self.cfg.window_secs * self.cfg.notional_confirm_mult if typ_n else 0.0
+        if need_n and notion < need_n:
+            return False, "대금이 평소보다 안 커짐"
+        need_t = max(
+            self.cfg.min_confirm_per_sec * self.cfg.window_secs,
+            typ_t * self.cfg.window_secs * self.cfg.freq_confirm_mult if typ_t else 0.0,
+        )
+        if trades < need_t:
+            return False, f"빈도가 안 늘어남 ({trades}건 < {need_t:.0f})"
+        if prev_ready and trades <= prev_trades:
+            return False, "빈도가 늘고 있지 않음"
+        return True, "빈도·대금이 같이 늘고 있음"
+
     def _d_streak(self) -> int:
         n = 0
         for x in reversed(self.ticks):
@@ -289,15 +360,26 @@ class SupplyEngine:
         restart_wait = not ready
         if st is None:
             return PointDecision(
-                False, False, False, False, ready, opening_box_wait, restart_wait,
-                None, 0.0, "1초 수급 없음",
+                buy_ok=False,
+                fade_ok=False,
+                dump_flow=False,
+                lock_ok=False,
+                confirm_ok=False,
+                hd_ready=ready,
+                opening_box_wait=opening_box_wait,
+                restart_wait=restart_wait,
+                d=None,
+                h=0.0,
+                reason="1초 수급 없음",
             )
         lock = st.lock_ok
+        confirm = st.confirm_ok
         buy = (
             new_buy_allowed
             and not opening_box_wait
             and ready
             and lock
+            and confirm
             and st.d_streak >= self.cfg.window_secs
             and st.h > 0
             and st.h_rising_streak >= self.cfg.window_secs - 1
@@ -325,15 +407,18 @@ class SupplyEngine:
             reason = "국면이 신규 매수를 닫음"
         elif not lock:
             reason = st.lock_reason
+        elif not confirm:
+            reason = st.confirm_reason
         elif buy:
-            reason = "자물쇠 열림 + D 유지 + H 커짐"
+            reason = "자물쇠 + 빈도·대금 확인 + D 유지 + H 커짐"
         else:
-            reason = "자물쇠·D·H 조건 미충족"
+            reason = "자물쇠·확인·D·H 조건 미충족"
         return PointDecision(
             buy_ok=buy,
             fade_ok=fade,
             dump_flow=dump_flow,
             lock_ok=lock,
+            confirm_ok=confirm,
             hd_ready=ready,
             opening_box_wait=opening_box_wait,
             restart_wait=restart_wait,

@@ -132,6 +132,58 @@ def test_midday_restart_with_snapshot_skips_wait():
     assert snap.point.restart_wait is False
 
 
+def test_quiet_tape_lock_opens_but_confirm_stays_closed():
+    cfg = LockConfig(window_secs=3, min_trades_in_window=6, min_notional_floor=0, typical_mult=0.1)
+    eng = SupplyEngine(cfg)
+    t0 = DAY
+    st = None
+    for i in range(40):
+        st = eng.on_second(tick(t0 + timedelta(seconds=i), 320, 80, 3))
+    assert st is not None
+    assert st.lock_ok is True
+    assert st.confirm_ok is False
+    assert ("빈도" in st.confirm_reason) or ("대금" in st.confirm_reason)
+
+
+def test_freq_and_notional_rise_confirms_buy_tape():
+    cfg = LockConfig(window_secs=3, min_trades_in_window=6, min_notional_floor=0, typical_mult=0.1)
+    eng = SupplyEngine(cfg)
+    t0 = DAY
+    for i in range(40):
+        eng.on_second(tick(t0 + timedelta(seconds=i), 320, 80, 3))
+    st = None
+    for i, n in enumerate((10, 12, 14)):
+        st = eng.on_second(tick(t0 + timedelta(seconds=40 + i), 1600, 400, n))
+    assert st is not None
+    assert st.lock_ok is True
+    assert st.confirm_ok is True
+
+
+def test_freq_rise_without_notional_is_one_share_spam():
+    cfg = LockConfig(window_secs=3, min_trades_in_window=6, min_notional_floor=0, typical_mult=0.1)
+    eng = SupplyEngine(cfg)
+    t0 = DAY
+    for i in range(40):
+        eng.on_second(tick(t0 + timedelta(seconds=i), 320, 80, 3))
+    st = None
+    for i in range(3):
+        st = eng.on_second(tick(t0 + timedelta(seconds=40 + i), 12, 3, 12))
+    assert st is not None
+    assert st.confirm_ok is False
+    assert "대금" in st.confirm_reason
+
+
+def test_already_thick_tape_confirms_without_accel():
+    cfg = LockConfig(window_secs=3, min_trades_in_window=6, min_notional_floor=0, typical_mult=0.1)
+    eng = SupplyEngine(cfg)
+    t0 = DAY
+    st = None
+    for i in range(40):
+        st = eng.on_second(tick(t0 + timedelta(seconds=i), 800, 200, 10))
+    assert st is not None
+    assert st.confirm_ok is True
+
+
 def test_fade_fires_once():
     eng = SupplyEngine()
     t0 = DAY
