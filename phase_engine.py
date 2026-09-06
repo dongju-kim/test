@@ -207,6 +207,14 @@ class PhaseEngine:
         self.last = decision
         return decision
 
+    def replay(self, bars: List[Bar3m], open_price: Optional[float] = None) -> Optional[PhaseDecision]:
+        """재시작 시 오늘 3분봉만으로 국면을 다시 쌓는다. H·D는 여기서 복원되지 않음."""
+        self.reset_session(open_price if open_price is not None else (bars[0].open if bars else None))
+        last: Optional[PhaseDecision] = None
+        for b in bars:
+            last = self.on_bar_close(b)
+        return last
+
     def _emit(self, phase: Phase, when: datetime, reason: str) -> PhaseDecision:
         h_on, new_buy, add_buy, fade, dump = h_flags(phase)
         n = len(self.bars)
