@@ -83,6 +83,14 @@ class SessionRuntime:
     def on_bar_close(self, bar: Bar3m) -> PhaseDecision:
         return self.phase.on_bar_close(bar)
 
+    def mark_fill(self, now: datetime) -> None:
+        """매수 체결. 1차는 이 시각 이후 규칙을 쓴다."""
+        h = self.supply.last.h if self.supply.last else None
+        self.supply.mark_entry(now, h)
+
+    def mark_flat(self) -> None:
+        self.supply.mark_flat()
+
     def on_second(self, tick: SecondTick) -> RuntimeSnapshot:
         self.supply.on_second(tick)
         phase = self.phase.last or self.phase.on_clock(tick.t)

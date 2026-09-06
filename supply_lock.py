@@ -33,6 +33,8 @@ class LockConfig:
     notional_confirm_mult: float = 1.5  # 창 대금 >= 평소 1초 대금 × 창 × 이 값
     freq_already_thick: float = 8.0  # 평소가 이미 초당 이 건 이상이면 가속 대신 유지
     min_confirm_per_sec: float = 6.0  # 가속 확인의 절대 하한 (2~3 → 10 을 염두)
+    # 매수 뒤 1차. H가 한 번 더 커지면 초와 무관. 아니면 이 초가 지난 뒤.
+    first_fade_wait_secs: int = 12
 
 
 @dataclass
@@ -82,8 +84,10 @@ class SecondState:
 class PointDecision:
     """타점 문. 국면 new_buy_allowed와 AND."""
 
-    buy_ok: bool
-    fade_ok: bool  # H가 양수에서 처음 줄어듦
+    buy_ok: bool  # 추격. 여섯 칸
+    wait_buy_ok: bool  # 걸어두기. 체결이 안 늘어도 방은 열림
+    fade_ok: bool  # 1차. 급등 + 양수 H가 처음 작아짐 (매수 직후엔 바로 안 냄)
+    second_ok: bool  # 2차. 급등 + H≤0. 1차를 기다리지 않음
     dump_flow: bool  # H가 음수이며 깊어짐 (보유 중 참고)
     lock_ok: bool
     confirm_ok: bool
@@ -117,6 +121,10 @@ class SupplyEngine:
         self.restored: bool = False  # EMA·직전 초까지 복원됨
         self.typical_only: bool = False  # 평소 속도만 복원. H는 아직 빔
         self.fade_fired: bool = False
+        self.second_fired: bool = False
+        self.bought_at: Optional[datetime] = None
+        self.h_peak_after_buy: Optional[float] = None
+        self.h_grew_after_buy: bool = False
         self.last: Optional[SecondState] = None
 
     def reset(self, now: Optional[datetime] = None, restored: bool = False) -> None:
@@ -132,6 +140,10 @@ class SupplyEngine:
         self.restored = restored
         self.typical_only = False
         self.fade_fired = False
+        self.second_fired = False
+        self.bought_at = None
+        self.h_peak_after_buy = None
+        self.h_grew_after_buy = False
         self.last = None
 
     def restore_typical(self, typical: float, samples: int, now: datetime) -> None:
@@ -247,6 +259,9 @@ class SupplyEngine:
             h_rising = 0
         if h_rising > 0:
             self.fade_fired = False
+        if h > 0:
+            self.second_fired = False
+        self._note_h_after_buy(h)
 
         st = SecondState(
             t=tick.t,
@@ -347,6 +362,64 @@ class SupplyEngine:
             n += 1
         return n
 
+    def mark_entry(self, now: datetime, h: Optional[float] = None) -> None:
+        """체결된 매수. 이 시각 이후 1차 규칙을 쓴다."""
+        self.bought_at = now
+        peak = h if h is not None else (self.last.h if self.last else None)
+        self.h_peak_after_buy = peak
+        self.h_grew_after_buy = False
+        self.fade_fired = False
+        self.second_fired = False
+
+    def mark_flat(self) -> None:
+        """전량 청산. 1·2차 기억을 지운다."""
+        self.bought_at = None
+        self.h_peak_after_buy = None
+        self.h_grew_after_buy = False
+        self.fade_fired = False
+        self.second_fired = False
+
+    def _note_h_after_buy(self, h: float) -> None:
+        if self.bought_at is None:
+            return
+        if self.h_peak_after_buy is None:
+            self.h_peak_after_buy = h
+            return
+        if h > self.h_peak_after_buy:
+            self.h_grew_after_buy = True
+            self.h_peak_after_buy = h
+
+    def first_fade_open(self, now: datetime) -> bool:
+        """1차를 내도 되는가. 미보유면 닫힘. 손절·급락은 여기 안 탄다."""
+        if self.bought_at is None:
+            return False
+        if self.h_grew_after_buy:
+            return True
+        return (now - self.bought_at).total_seconds() >= self.cfg.first_fade_wait_secs
+
+    def _empty_point(
+        self,
+        now: datetime,
+        opening_box_wait: bool,
+        reason: str,
+    ) -> PointDecision:
+        ready = self.hd_ready(now)
+        return PointDecision(
+            buy_ok=False,
+            wait_buy_ok=False,
+            fade_ok=False,
+            second_ok=False,
+            dump_flow=False,
+            lock_ok=False,
+            confirm_ok=False,
+            hd_ready=ready,
+            opening_box_wait=opening_box_wait,
+            restart_wait=not ready,
+            d=None,
+            h=0.0,
+            reason=reason,
+        )
+
     def point(
         self,
         now: datetime,
@@ -359,23 +432,13 @@ class SupplyEngine:
         ready = self.hd_ready(now)
         restart_wait = not ready
         if st is None:
-            return PointDecision(
-                buy_ok=False,
-                fade_ok=False,
-                dump_flow=False,
-                lock_ok=False,
-                confirm_ok=False,
-                hd_ready=ready,
-                opening_box_wait=opening_box_wait,
-                restart_wait=restart_wait,
-                d=None,
-                h=0.0,
-                reason="1초 수급 없음",
-            )
+            return self._empty_point(now, opening_box_wait, "1초 수급 없음")
         lock = st.lock_ok
         confirm = st.confirm_ok
+        held = self.bought_at is not None
         buy = (
-            new_buy_allowed
+            (not held)
+            and new_buy_allowed
             and not opening_box_wait
             and ready
             and lock
@@ -384,22 +447,56 @@ class SupplyEngine:
             and st.h > 0
             and st.h_rising_streak >= self.cfg.window_secs - 1
         )
-        # 1차: 양수 H가 처음 작아진 한 초만. 같은 축소가 이어져도 다시 안 냄
-        first_fade = (
-            fade_exit_allowed
+        # 걸어두기: 방은 열렸는데 체결이 안 늘음. 추격과 같이 안 냄.
+        wait_buy = (
+            (not held)
+            and (not buy)
+            and new_buy_allowed
+            and not opening_box_wait
             and ready
-            and st.h > 0
+            and lock
+            and (not confirm)
+            and st.d is not None
+            and st.d > self.cfg.d_buy
+            and st.h >= 0
+        )
+        # 1차: 양수 H가 처음 작아진 한 초만. 매수 직후엔 H가 다시 커지거나 대기 초가 지나야 냄.
+        shrink = (
+            st.h > 0
             and st.prev_h is not None
             and st.prev_h > 0
             and st.h < st.prev_h
+        )
+        first_fade = (
+            held
+            and fade_exit_allowed
+            and ready
+            and shrink
             and not self.fade_fired
+            and self.first_fade_open(now)
         )
         if first_fade:
             self.fade_fired = True
         fade = first_fade
+        # 2차: H가 0 이하. 1차를 기다리지 않음. 같은 음수 구간에 한 번만.
+        second = (
+            held
+            and fade_exit_allowed
+            and ready
+            and st.h <= 0
+            and not self.second_fired
+        )
+        if second:
+            self.second_fired = True
         # 수급이 음수이며 직전보다 더 깊음 (국면 급락 전량과는 별개)
         dump_flow = st.h < 0 and (st.prev_h is None or st.h < st.prev_h)
-        if opening_box_wait:
+        if held and fade:
+            reason = "1차. 매수 후 H가 다시 커졌거나 대기 초가 지난 뒤 양수 H가 작아짐"
+        elif held and second:
+            reason = "2차. 급등에서 H≤0"
+        elif held:
+            reason = "보유 중"
+        elif opening_box_wait:
             reason = "오프닝 박스(18분) 수집 중. D·H는 쌓지만 신규 안 씀"
         elif restart_wait:
             reason = "재시작 타점 워밍업. 국면은 살아 있고 D·H는 지금부터 쌓는 중"
@@ -407,15 +504,19 @@ class SupplyEngine:
             reason = "국면이 신규 매수를 닫음"
         elif not lock:
             reason = st.lock_reason
+        elif buy:
+            reason = "추격 매수. 얇지 않음 + 체결·대금이 늘음 + D 유지 + H 커짐"
+        elif wait_buy:
+            reason = "걸어두기. 방은 열렸으나 체결이 안 늘어 낮은 지정가만"
         elif not confirm:
             reason = st.confirm_reason
-        elif buy:
-            reason = "자물쇠 + 빈도·대금 확인 + D 유지 + H 커짐"
         else:
-            reason = "자물쇠·확인·D·H 조건 미충족"
+            reason = "얇지 않음·확인·D·H 조건 미충족"
         return PointDecision(
             buy_ok=buy,
+            wait_buy_ok=wait_buy,
             fade_ok=fade,
+            second_ok=second,
             dump_flow=dump_flow,
             lock_ok=lock,
             confirm_ok=confirm,

@@ -190,6 +190,9 @@ def test_fade_fires_once():
     for i in range(20):
         eng.on_second(tick(t0 + timedelta(seconds=i), 900, 100, 8))
     eng.restored = True
+    buy_t = t0 + timedelta(seconds=8)
+    eng.mark_entry(buy_t, 0.05)
+    eng.h_grew_after_buy = True
     eng.last.h = 0.08
     eng.last.prev_h = 0.12
     eng.last.h_rising_streak = 0
@@ -197,6 +200,136 @@ def test_fade_fires_once():
     d2 = eng.point(t0 + timedelta(seconds=21), new_buy_allowed=False, fade_exit_allowed=True, opening_box_wait=False)
     assert d1.fade_ok is True
     assert d2.fade_ok is False
+
+
+def test_first_fade_skips_right_after_buy():
+    eng = SupplyEngine()
+    t0 = DAY
+    for i in range(20):
+        eng.on_second(tick(t0 + timedelta(seconds=i), 900, 100, 8))
+    eng.restored = True
+    now = t0 + timedelta(seconds=20)
+    eng.mark_entry(now, 0.19)
+    eng.last.h = 0.17
+    eng.last.prev_h = 0.19
+    eng.last.h_rising_streak = 0
+    d = eng.point(now + timedelta(seconds=1), new_buy_allowed=False, fade_exit_allowed=True, opening_box_wait=False)
+    assert d.fade_ok is False
+    assert d.second_ok is False
+
+
+def test_first_fade_after_h_grows_again():
+    eng = SupplyEngine()
+    t0 = DAY
+    for i in range(20):
+        eng.on_second(tick(t0 + timedelta(seconds=i), 900, 100, 8))
+    eng.restored = True
+    now = t0 + timedelta(seconds=20)
+    eng.mark_entry(now, 0.10)
+    eng._note_h_after_buy(0.14)
+    assert eng.h_grew_after_buy is True
+    eng.last.h = 0.11
+    eng.last.prev_h = 0.14
+    d = eng.point(now + timedelta(seconds=2), new_buy_allowed=False, fade_exit_allowed=True, opening_box_wait=False)
+    assert d.fade_ok is True
+
+
+def test_first_fade_after_12s_without_reaccel():
+    eng = SupplyEngine()
+    t0 = DAY
+    for i in range(20):
+        eng.on_second(tick(t0 + timedelta(seconds=i), 900, 100, 8))
+    eng.restored = True
+    buy_t = t0 + timedelta(seconds=20)
+    eng.mark_entry(buy_t, 0.19)
+    assert eng.h_grew_after_buy is False
+    later = buy_t + timedelta(seconds=12)
+    eng.last.h = 0.09
+    eng.last.prev_h = 0.10
+    d = eng.point(later, new_buy_allowed=False, fade_exit_allowed=True, opening_box_wait=False)
+    assert d.fade_ok is True
+
+
+def test_second_does_not_wait_12s():
+    eng = SupplyEngine()
+    t0 = DAY
+    for i in range(20):
+        eng.on_second(tick(t0 + timedelta(seconds=i), 900, 100, 8))
+    eng.restored = True
+    now = t0 + timedelta(seconds=20)
+    eng.mark_entry(now, 0.08)
+    eng.last.h = -0.01
+    eng.last.prev_h = 0.02
+    d = eng.point(now + timedelta(seconds=2), new_buy_allowed=False, fade_exit_allowed=True, opening_box_wait=False)
+    assert d.fade_ok is False
+    assert d.second_ok is True
+
+
+def test_dump_flow_not_delayed_by_entry():
+    eng = SupplyEngine()
+    t0 = DAY
+    for i in range(20):
+        eng.on_second(tick(t0 + timedelta(seconds=i), 900, 100, 8))
+    eng.restored = True
+    now = t0 + timedelta(seconds=20)
+    eng.mark_entry(now, 0.04)
+    eng.last.h = -0.06
+    eng.last.prev_h = -0.02
+    d = eng.point(now + timedelta(seconds=1), new_buy_allowed=False, fade_exit_allowed=False, opening_box_wait=False)
+    assert d.dump_flow is True
+    assert d.fade_ok is False
+
+
+def _quiet_then(eng, t0, n=40, buy=320, sell=80, trades=3):
+    for i in range(n):
+        eng.on_second(tick(t0 + timedelta(seconds=i), buy, sell, trades))
+
+
+def test_wait_buy_when_confirm_fails_but_tape_not_thin():
+    cfg = LockConfig(window_secs=3, min_trades_in_window=6, min_notional_floor=0, typical_mult=0.1)
+    eng = SupplyEngine(cfg)
+    t0 = DAY
+    _quiet_then(eng, t0)
+    eng.restored = True
+    st = eng.last
+    assert st is not None
+    assert st.lock_ok is True
+    assert st.confirm_ok is False
+    d = eng.point(t0 + timedelta(seconds=39), new_buy_allowed=True, fade_exit_allowed=False, opening_box_wait=False)
+    assert d.buy_ok is False
+    assert d.wait_buy_ok is True
+
+
+def test_wait_buy_closed_when_chase_opens():
+    cfg = LockConfig(window_secs=3, min_trades_in_window=6, min_notional_floor=0, typical_mult=0.1)
+    eng = SupplyEngine(cfg)
+    t0 = DAY
+    _quiet_then(eng, t0)
+    # 대금·건수가 늘면서 H도 초마다 커지게
+    for i, (b, s, n) in enumerate(((1200, 400, 10), (2000, 400, 12), (3200, 400, 16))):
+        eng.on_second(tick(t0 + timedelta(seconds=40 + i), b, s, n))
+    eng.restored = True
+    st = eng.last
+    assert st is not None
+    assert st.confirm_ok is True
+    assert st.h > 0
+    assert st.h_rising_streak >= 2
+    d = eng.point(t0 + timedelta(seconds=42), new_buy_allowed=True, fade_exit_allowed=False, opening_box_wait=False)
+    assert d.buy_ok is True
+    assert d.wait_buy_ok is False
+
+
+def test_wait_buy_closed_when_thin():
+    cfg = LockConfig(window_secs=3, min_trades_in_window=6, min_notional_floor=1000)
+    eng = SupplyEngine(cfg)
+    t0 = DAY
+    for i in range(5):
+        eng.on_second(tick(t0 + timedelta(seconds=i), 10, 2, 1))
+    eng.restored = True
+    d = eng.point(t0 + timedelta(seconds=4), new_buy_allowed=True, fade_exit_allowed=False, opening_box_wait=False)
+    assert d.lock_ok is False
+    assert d.wait_buy_ok is False
+    assert d.buy_ok is False
 
 
 if __name__ == "__main__":
