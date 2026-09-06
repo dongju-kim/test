@@ -1,13 +1,38 @@
 {
   "version": 1,
   "language": "ko",
+  "canonical_doc": "docs/전체정리_차트_영상_설정.md",
   "warnings": [
     "방 그룹과 수급 그룹을 같은 날 같이 저장하지 말 것",
     "아침 종목 ±%를 바꿔도 장중 방 숫자는 그대로다",
-    "손절·급락에는 1차 대기를 묶지 말 것"
+    "손절·급락에는 1차 대기를 묶지 말 것",
+    "봉과 봉의 차이(±%)는 자리마다 다른 칸이다. 한 슬라이더로 합치지 말 것"
   ],
   "ui_levels": ["fixed", "basic", "advanced", "off_by_default", "rejected"],
   "groups": [
+    {
+      "id": "candle_diff",
+      "title": "봉의 차이",
+      "note": "무엇을 무엇과 비교하는지. ±3%는 자리가 넷이다.",
+      "items": [
+        {"id": "phase_bar", "label": "국면 봉", "type": "enum", "default": "3m_closed", "ui": "fixed", "note": "완성 3분만"},
+        {"id": "point_bar", "label": "타점", "type": "enum", "default": "1s", "ui": "fixed"},
+        {"id": "use_wick_for_phase", "label": "꼬리로 돌파·급락", "type": "bool", "default": false, "ui": "rejected"},
+        {"id": "use_forming_bar", "label": "진행 중 봉으로 방", "type": "bool", "default": false, "ui": "rejected"},
+        {"id": "overlay_same_slots", "label": "3분과 1초를 같은 칸 수로 겹침", "type": "bool", "default": false, "ui": "rejected"},
+        {"id": "box_width_pct", "label": "박스 폭 (직전 봉 고저)", "type": "pct", "default": 0.015, "min": 0.008, "max": 0.03, "ui": "basic", "compare": "지금종가 vs 직전봉들의 고저"},
+        {"id": "pullback_near_pct", "label": "눌림 (종가 vs 오늘 MA20)", "type": "pct", "default": 0.003, "min": 0.002, "max": 0.008, "ui": "basic", "compare": "지금 3분 종가 vs 오늘 MA20"},
+        {"id": "dump_ma_pct", "label": "급락 (종가 vs MA20 아래)", "type": "pct", "default": 0.005, "min": 0.003, "max": 0.012, "ui": "basic"},
+        {"id": "dump_consecutive", "label": "급락 연속 봉", "type": "int", "default": 2, "min": 2, "max": 3, "ui": "advanced", "compare": "지금 봉과 직전 봉의 종가 둘 다 MA20 아래"},
+        {"id": "open_vs_open_pct", "label": "개장 (종가 vs 당일 시가)", "type": "pct", "default": 0.01, "min": 0.005, "max": 0.03, "ui": "basic", "note": "3%로 키우면 큰 첫 봉만 급등/급락"},
+        {"id": "ma_gap_pct", "label": "횡보 (MA5 vs MA20)", "type": "pct", "default": 0.005, "min": 0.003, "max": 0.01, "ui": "basic"},
+        {"id": "wait_body_frac", "label": "걸어두기 (직전 봉 몸통 아래서)", "type": "float", "default": 0.6667, "choices": [0.5, 0.6667], "ui": "basic", "compare": "직전 3분 시가~종가"},
+        {"id": "gap_inside_pct", "label": "아침 시가 갭 (오늘 시가 vs 전일 종가)", "type": "pct", "default": 0.03, "ui": "basic", "note": "안쪽 ±3%. 장중 방 아님"},
+        {"id": "weekly_ext_lo_pct", "label": "아침 주봉 이격 하한", "type": "pct", "default": -0.03, "ui": "basic", "note": "장중 방 아님"},
+        {"id": "near_3d_high_pct", "label": "아침 3일 고점 −N%", "type": "pct", "default": 0.03, "ui": "off_by_default"},
+        {"id": "pct_3_is_not_one_slider", "label": "±3%를 한 칸으로 합침", "type": "bool", "default": false, "ui": "rejected", "note": "갭·주봉·3일고점·개장은 다른 비교"}
+      ]
+    },
     {
       "id": "today",
       "title": "오늘 장",
