@@ -1,0 +1,271 @@
+{
+  "version": 1,
+  "language": "ko",
+  "canonical_doc": "docs/전체정리_차트_영상_설정.md",
+  "warnings": [
+    "방 그룹과 수급 그룹을 같은 날 같이 저장하지 말 것",
+    "아침 종목 ±%를 바꿔도 장중 방 숫자는 그대로다",
+    "손절·급락에는 1차 대기를 묶지 말 것",
+    "봉과 봉의 차이(±%)는 자리마다 다른 칸이다. 한 슬라이더로 합치지 말 것"
+  ],
+  "ui_levels": ["fixed", "basic", "advanced", "off_by_default", "rejected"],
+  "groups": [
+    {
+      "id": "candle_diff",
+      "title": "봉의 차이",
+      "note": "무엇을 무엇과 비교하는지. ±3%는 자리가 넷이다.",
+      "items": [
+        {"id": "phase_bar", "label": "국면 봉", "type": "enum", "default": "3m_closed", "ui": "fixed", "note": "완성 3분만"},
+        {"id": "point_bar", "label": "타점", "type": "enum", "default": "1s", "ui": "fixed"},
+        {"id": "use_wick_for_phase", "label": "꼬리로 돌파·급락", "type": "bool", "default": false, "ui": "rejected"},
+        {"id": "use_forming_bar", "label": "진행 중 봉으로 방", "type": "bool", "default": false, "ui": "rejected"},
+        {"id": "overlay_same_slots", "label": "3분과 1초를 같은 칸 수로 겹침", "type": "bool", "default": false, "ui": "rejected"},
+        {"id": "box_width_pct", "label": "박스 폭 (직전 봉 고저)", "type": "pct", "default": 0.015, "min": 0.008, "max": 0.03, "ui": "basic", "compare": "지금종가 vs 직전봉들의 고저"},
+        {"id": "pullback_near_pct", "label": "눌림 (종가 vs 오늘 MA20)", "type": "pct", "default": 0.003, "min": 0.002, "max": 0.008, "ui": "basic", "compare": "지금 3분 종가 vs 오늘 MA20"},
+        {"id": "dump_ma_pct", "label": "급락 (종가 vs MA20 아래)", "type": "pct", "default": 0.005, "min": 0.003, "max": 0.012, "ui": "basic"},
+        {"id": "dump_consecutive", "label": "급락 연속 봉", "type": "int", "default": 2, "min": 2, "max": 3, "ui": "advanced", "compare": "지금 봉과 직전 봉의 종가 둘 다 MA20 아래"},
+        {"id": "open_vs_open_pct", "label": "개장 (종가 vs 당일 시가)", "type": "pct", "default": 0.01, "min": 0.005, "max": 0.03, "ui": "basic", "note": "3%로 키우면 큰 첫 봉만 급등/급락"},
+        {"id": "ma_gap_pct", "label": "횡보 (MA5 vs MA20)", "type": "pct", "default": 0.005, "min": 0.003, "max": 0.01, "ui": "basic"},
+        {"id": "wait_body_frac", "label": "걸어두기 (직전 봉 몸통 아래서)", "type": "float", "default": 0.6667, "choices": [0.5, 0.6667], "ui": "basic", "compare": "직전 3분 시가~종가"},
+        {"id": "gap_inside_pct", "label": "아침 시가 갭 (오늘 시가 vs 전일 종가)", "type": "pct", "default": 0.03, "ui": "basic", "note": "안쪽 ±3%. 장중 방 아님"},
+        {"id": "weekly_ext_lo_pct", "label": "아침 주봉 이격 하한", "type": "pct", "default": -0.03, "ui": "basic", "note": "장중 방 아님"},
+        {"id": "near_3d_high_pct", "label": "아침 3일 고점 −N%", "type": "pct", "default": 0.03, "ui": "off_by_default"},
+        {"id": "pct_3_is_not_one_slider", "label": "±3%를 한 칸으로 합침", "type": "bool", "default": false, "ui": "rejected", "note": "갭·주봉·3일고점·개장은 다른 비교"}
+      ]
+    },
+    {
+      "id": "today",
+      "title": "오늘 장",
+      "items": [
+        {"id": "live_on", "label": "실전 자동매매", "type": "bool", "default": false, "ui": "basic", "note": "기본은 페이퍼"},
+        {"id": "max_held", "label": "동시 보유", "type": "int", "default": 2, "min": 1, "max": 2, "ui": "basic"},
+        {"id": "max_new_per_sec", "label": "한 초 신규", "type": "int", "default": 1, "min": 1, "max": 2, "ui": "advanced"},
+        {"id": "session_open", "label": "정규장 시작", "type": "time", "default": "09:00", "ui": "advanced", "code": "PhaseConfig.session_open"},
+        {"id": "session_close", "label": "정규장 끝", "type": "time", "default": "15:30", "ui": "advanced", "code": "PhaseConfig.session_close"},
+        {"id": "kiwoom_time_is_start", "label": "키움 분봉 시각이 시작(+3분)", "type": "bool", "default": true, "ui": "advanced", "code": "PhaseConfig.kiwoom_time_is_start"},
+        {"id": "no_new_before_close_min", "label": "마감 N분 전 신규 금지", "type": "int", "default": 15, "min": 5, "max": 30, "unit": "min", "ui": "basic"},
+        {"id": "flatten_at_close", "label": "마감 전량", "type": "bool", "default": true, "ui": "basic"},
+        {"id": "daily_loss_stop_pct", "label": "하루 손실 정지", "type": "pct", "default": 0.02, "min": 0.01, "max": 0.03, "ui": "basic"},
+        {"id": "daily_max_buys", "label": "하루 최대 매수 횟수", "type": "int", "default": 20, "min": 5, "max": 40, "ui": "advanced"}
+      ]
+    },
+    {
+      "id": "clock",
+      "title": "시간표",
+      "items": [
+        {"id": "min_box_bars", "label": "박스만 모으는 봉 수(18분)", "type": "int", "default": 6, "min": 4, "max": 8, "ui": "basic", "code": "PhaseConfig.min_box_bars"},
+        {"id": "min_range_bars", "label": "임시 횡보 최소 봉", "type": "int", "default": 8, "min": 6, "max": 12, "ui": "advanced", "code": "PhaseConfig.min_range_bars"},
+        {"id": "break_open_time", "label": "돌파 여는 시각", "type": "time", "default": "09:18", "ui": "basic", "note": "박스 칸과 연동"},
+        {"id": "pullback_open_time", "label": "눌림 여는 시각", "type": "time", "default": "10:00", "ui": "basic", "note": "코드에 시각 없음. UI에 넣음"},
+        {"id": "hd_warmup_secs", "label": "재시작 타점 대기", "type": "int", "default": 40, "min": 20, "max": 60, "unit": "sec", "ui": "advanced", "code": "LockConfig.hd_warmup_secs"},
+        {"id": "skip_warmup_if_snapshot", "label": "같은 날 1초 저장본이면 대기 생략", "type": "bool", "default": true, "ui": "advanced"}
+      ]
+    },
+    {
+      "id": "morning_exclude",
+      "title": "아침 종목 · 제외",
+      "note": "장중 방에 넣지 않음. 목록만.",
+      "items": [
+        {"id": "ex_managed", "label": "관리종목 제외", "type": "bool", "default": true, "ui": "basic", "source": "키움 0150"},
+        {"id": "ex_warning", "label": "투자경고·주의 제외", "type": "bool", "default": true, "ui": "basic"},
+        {"id": "ex_halt", "label": "거래정지·정리매매 제외", "type": "bool", "default": true, "ui": "basic"},
+        {"id": "ex_disclosure", "label": "불성실공시 제외", "type": "bool", "default": true, "ui": "basic"},
+        {"id": "ex_preferred", "label": "우선주 제외", "type": "bool", "default": true, "ui": "basic"},
+        {"id": "ex_etf", "label": "ETF·ETN·스팩 제외", "type": "bool", "default": true, "ui": "basic"},
+        {"id": "ex_margin100", "label": "증거금 100% 제외", "type": "bool", "default": true, "ui": "basic"},
+        {"id": "ex_today_disclosure", "label": "당일 공시 제외", "type": "bool", "default": true, "ui": "basic"}
+      ]
+    },
+    {
+      "id": "morning_size",
+      "title": "아침 종목 · 규모",
+      "items": [
+        {"id": "mkt_kospi", "label": "코스피", "type": "bool", "default": true, "ui": "basic"},
+        {"id": "mkt_kosdaq", "label": "코스닥", "type": "bool", "default": true, "ui": "basic"},
+        {"id": "cap_min_eok", "label": "시가총액 하한(억)", "type": "int", "default": 5000, "min": 1000, "max": 30000, "ui": "basic"},
+        {"id": "cap_max_eok", "label": "시가총액 상한(억)", "type": "int", "default": null, "ui": "off_by_default"},
+        {"id": "price_min", "label": "주가 하한", "type": "int", "default": 5000, "min": 1000, "max": 10000, "ui": "basic"},
+        {"id": "price_max", "label": "주가 상한", "type": "int", "default": 200000, "min": 50000, "max": 500000, "ui": "basic"},
+        {"id": "day_value_20d_eok", "label": "20일 하루 대금 하한(억)", "type": "int", "default": 300, "min": 50, "max": 1000, "ui": "basic"},
+        {"id": "spread_max_pct", "label": "스프레드 상한", "type": "pct", "default": 0.0015, "min": 0.0005, "max": 0.004, "ui": "advanced"}
+      ]
+    },
+    {
+      "id": "morning_daily",
+      "title": "아침 종목 · 전일·최근 일봉",
+      "note": "어제 2~3일. 오늘 방을 만들지 않음.",
+      "items": [
+        {"id": "daily_lookback", "label": "보는 일봉 수", "type": "int", "default": 3, "min": 2, "max": 5, "ui": "basic"},
+        {"id": "daily_min_up_bars", "label": "그 중 양봉 최소", "type": "int", "default": 1, "min": 0, "max": 3, "ui": "basic"},
+        {"id": "yday_value_vs_avg", "label": "어제 대금 ≥ N일 평균 배수", "type": "float", "default": 0.8, "min": 0.5, "max": 1.5, "ui": "basic"},
+        {"id": "yday_must_be_up", "label": "어제 양봉만", "type": "bool", "default": false, "ui": "off_by_default"},
+        {"id": "near_3d_high_pct", "label": "3일 고점 −N% 안", "type": "pct", "default": 0.03, "ui": "off_by_default", "source": "구글 최고종가 −3% 근접"}
+      ]
+    },
+    {
+      "id": "morning_gap",
+      "title": "아침 종목 · 전일 종가 대비 시가 갭",
+      "note": "기본은 안쪽 ±3%. 큰 갭은 오늘 판이 어제와 다름.",
+      "items": [
+        {"id": "gap_on", "label": "갭 필터", "type": "bool", "default": true, "ui": "basic"},
+        {"id": "gap_mode", "label": "방식", "type": "enum", "default": "inside", "choices": ["inside", "outside", "up_only", "down_only"], "ui": "basic", "labels": {"inside": "안쪽(큰 갭 제외)", "outside": "바깥(갭만)", "up_only": "위 갭만", "down_only": "아래 갭만"}},
+        {"id": "gap_lo_pct", "label": "시가 갭 하한", "type": "pct", "default": -0.03, "min": -0.08, "max": 0.0, "ui": "basic"},
+        {"id": "gap_hi_pct", "label": "시가 갭 상한", "type": "pct", "default": 0.03, "min": 0.0, "max": 0.10, "ui": "basic"},
+        {"id": "gap_only_preset", "label": "갭만 프리셋(+3~+10%)", "type": "bool", "default": false, "ui": "off_by_default", "source": "구글 갭상승 1분 단타. 이 전략과 다름"}
+      ]
+    },
+    {
+      "id": "morning_weekly",
+      "title": "아침 종목 · 주봉",
+      "note": "전일봉과 한 숫자로 합치지 않음. 장중 방에 미사용.",
+      "items": [
+        {"id": "weekly_on", "label": "주봉 체", "type": "bool", "default": true, "ui": "basic"},
+        {"id": "weekly_ma", "label": "주봉 MA", "type": "int", "default": 20, "choices": [10, 20, 60], "ui": "basic"},
+        {"id": "weekly_above_ma", "label": "주봉 종가 > 주봉 MA", "type": "bool", "default": true, "ui": "basic"},
+        {"id": "weekly_ext_hi_pct", "label": "주봉 이격 상한", "type": "pct", "default": 0.15, "min": 0.05, "max": 0.30, "ui": "basic"},
+        {"id": "weekly_ext_lo_pct", "label": "주봉 이격 하한", "type": "pct", "default": -0.03, "min": -0.08, "max": 0.0, "ui": "basic"},
+        {"id": "weekly_body_pos", "label": "최근 주봉 몸통 위치", "type": "enum", "default": "upper_half", "choices": ["off", "upper_half", "upper_two_thirds"], "ui": "basic"},
+        {"id": "weekly_must_be_up", "label": "이번 주 양봉만", "type": "bool", "default": false, "ui": "off_by_default"},
+        {"id": "near_weekly_high_pct", "label": "주봉 고점 −N% 안", "type": "pct", "default": 0.03, "ui": "off_by_default"}
+      ]
+    },
+    {
+      "id": "morning_optional",
+      "title": "아침 종목 · 꺼둔 구글 항목",
+      "items": [
+        {"id": "vs_yday_same_time_vol", "label": "전일 동시간 거래량 배수", "type": "float", "default": null, "min": 1.5, "max": 5.0, "ui": "off_by_default"},
+        {"id": "near_52w_pct", "label": "52주 고점 −N% 안", "type": "pct", "default": 0.03, "ui": "off_by_default"},
+        {"id": "near_20d_high", "label": "20일 신고가", "type": "bool", "default": false, "ui": "off_by_default"},
+        {"id": "daily_ma_align", "label": "일봉 정배열 5>20>60", "type": "bool", "default": false, "ui": "off_by_default"},
+        {"id": "foreign_inst", "label": "외인·기관 순매수", "type": "bool", "default": false, "ui": "rejected", "note": "타점 아님"}
+      ]
+    },
+    {
+      "id": "phase",
+      "title": "방 (3분)",
+      "bundle": "phase",
+      "note": "같은 날 수급 묶음과 같이 저장 금지",
+      "items": [
+        {"id": "bar_minutes", "label": "국면 봉 분", "type": "int", "default": 3, "ui": "fixed", "code": "PhaseConfig.bar_minutes"},
+        {"id": "box_width_pct", "label": "박스 폭", "type": "pct", "default": 0.015, "min": 0.008, "max": 0.03, "ui": "basic", "code": "PhaseConfig.box_width_pct"},
+        {"id": "ma_gap_pct", "label": "이평 간격(횡보)", "type": "pct", "default": 0.005, "min": 0.003, "max": 0.01, "ui": "basic", "code": "PhaseConfig.ma_gap_pct"},
+        {"id": "pullback_near_pct", "label": "눌림 MA20 근처", "type": "pct", "default": 0.003, "min": 0.002, "max": 0.008, "ui": "basic", "code": "PhaseConfig.pullback_near_pct"},
+        {"id": "dump_ma_pct", "label": "급락 MA20 아래", "type": "pct", "default": 0.005, "min": 0.003, "max": 0.012, "ui": "basic", "code": "PhaseConfig.dump_ma_pct"},
+        {"id": "dump_consecutive", "label": "급락 연속 종가", "type": "int", "default": 2, "min": 2, "max": 3, "ui": "advanced", "code": "PhaseConfig.dump_consecutive"},
+        {"id": "impulse_pct", "label": "충동(급등 기억)", "type": "pct", "default": 0.01, "min": 0.006, "max": 0.02, "ui": "advanced", "code": "PhaseConfig.impulse_pct"},
+        {"id": "open_surge_pct", "label": "개장 급등", "type": "pct", "default": 0.01, "min": 0.005, "max": 0.03, "ui": "basic", "code": "PhaseConfig.open_surge_pct", "note": "UI에서 ±3%로 올리면 구글 첫 봉 ±3%와 같은 맛"},
+        {"id": "open_dump_pct", "label": "개장 급락", "type": "pct", "default": 0.01, "min": 0.005, "max": 0.03, "ui": "basic", "code": "PhaseConfig.open_dump_pct"},
+        {"id": "volume_quiet_mult", "label": "거래량 조용 배수", "type": "float", "default": 1.5, "min": 1.2, "max": 2.5, "ui": "advanced", "code": "PhaseConfig.volume_quiet_mult"},
+        {"id": "ma20_slope_bars", "label": "MA20 기울기 봉", "type": "int", "default": 3, "min": 2, "max": 6, "ui": "advanced", "code": "PhaseConfig.ma20_slope_bars"},
+        {"id": "pullback_vol_frac", "label": "눌림 거래량 분수", "type": "float", "default": 0.5, "min": 0.3, "max": 0.8, "ui": "advanced", "code": "PhaseConfig.pullback_vol_frac"},
+        {"id": "lookback_bars", "label": "이평 길이(봉)", "type": "int", "default": 20, "ui": "advanced", "code": "PhaseConfig.lookback_bars"},
+        {"id": "seed_yday_3m", "label": "어제 3분 MA20·고점·박스로 오늘 방", "type": "bool", "default": false, "ui": "rejected"}
+      ]
+    },
+    {
+      "id": "supply",
+      "title": "수급 D·H",
+      "bundle": "supply",
+      "note": "같은 날 방 묶음과 같이 저장 금지",
+      "items": [
+        {"id": "window_secs", "label": "D 창", "type": "int", "default": 3, "min": 2, "max": 5, "unit": "sec", "ui": "basic", "code": "LockConfig.window_secs"},
+        {"id": "d_buy", "label": "D 매수 선", "type": "float", "default": 0.5, "min": 0.5, "max": 0.6, "ui": "basic", "code": "LockConfig.d_buy"},
+        {"id": "min_trades_in_window", "label": "얇지 않음 최소 건수", "type": "int", "default": 6, "min": 4, "max": 12, "ui": "basic", "code": "LockConfig.min_trades_in_window"},
+        {"id": "typical_mult", "label": "얇지 않음 대금 배수", "type": "float", "default": 0.5, "min": 0.3, "max": 1.0, "ui": "basic", "code": "LockConfig.typical_mult"},
+        {"id": "typical_ema_secs", "label": "평소 EMA(체결 있는 초)", "type": "int", "default": 90, "min": 60, "max": 180, "ui": "advanced", "code": "LockConfig.typical_ema_secs"},
+        {"id": "fast_ema", "label": "H 빠른 EMA", "type": "int", "default": 4, "min": 3, "max": 6, "ui": "advanced", "code": "LockConfig.fast_ema"},
+        {"id": "slow_ema", "label": "H 느린 EMA", "type": "int", "default": 18, "min": 12, "max": 24, "ui": "advanced", "code": "LockConfig.slow_ema"},
+        {"id": "signal_ema", "label": "H 시그널", "type": "int", "default": 6, "min": 4, "max": 9, "ui": "advanced", "code": "LockConfig.signal_ema"},
+        {"id": "freq_confirm_mult", "label": "체결 증가 배수", "type": "float", "default": 2.5, "min": 1.5, "max": 4.0, "ui": "basic", "code": "LockConfig.freq_confirm_mult"},
+        {"id": "notional_confirm_mult", "label": "대금 증가 배수", "type": "float", "default": 1.5, "min": 1.2, "max": 2.5, "ui": "basic", "code": "LockConfig.notional_confirm_mult"},
+        {"id": "freq_already_thick", "label": "이미 두꺼움 초당 건", "type": "float", "default": 8.0, "min": 5, "max": 15, "ui": "advanced", "code": "LockConfig.freq_already_thick"},
+        {"id": "min_confirm_per_sec", "label": "가속 절대 하한 초당", "type": "float", "default": 6.0, "min": 4, "max": 10, "ui": "advanced", "code": "LockConfig.min_confirm_per_sec"},
+        {"id": "fill_empty_d", "label": "빈 초 D를 0.5로 채움", "type": "bool", "default": false, "ui": "rejected"},
+        {"id": "count_in_h", "label": "건수를 H에 곱함", "type": "bool", "default": false, "ui": "rejected"}
+      ]
+    },
+    {
+      "id": "buy",
+      "title": "매수",
+      "items": [
+        {"id": "chase_on", "label": "추격", "type": "bool", "default": true, "ui": "basic"},
+        {"id": "wait_on", "label": "걸어두기", "type": "bool", "default": true, "ui": "basic"},
+        {"id": "chase_break_px", "label": "돌파 지정가", "type": "enum", "default": "ask1", "choices": ["ask1", "last", "ask1_plus_1tick"], "ui": "basic"},
+        {"id": "chase_break_unfill", "label": "돌파 미체결", "type": "enum", "default": "abandon", "choices": ["abandon", "cancel_1s"], "ui": "basic"},
+        {"id": "chase_pull_px", "label": "눌림 지정가", "type": "enum", "default": "last", "choices": ["last", "bid1", "body_2_3"], "ui": "basic"},
+        {"id": "wait_body_frac", "label": "걸어두기 몸통 자리", "type": "float", "default": 0.6667, "choices": [0.5, 0.6667], "ui": "basic", "code": "entry_order.BODY_FRAC"},
+        {"id": "wait_need_h_ge0", "label": "걸어두기 H≥0", "type": "bool", "default": true, "ui": "advanced"},
+        {"id": "wait_max_bars", "label": "걸어두기 최대 봉", "type": "int", "default": 1, "min": 1, "max": 3, "ui": "basic"},
+        {"id": "wait_cancel_if_chase", "label": "추격이 열리면 걸어둔 것 접음", "type": "bool", "default": true, "ui": "fixed"},
+        {"id": "market_fallback", "label": "조건 부족 시 시장가", "type": "bool", "default": false, "ui": "rejected"},
+        {"id": "add_buy", "label": "추매", "type": "bool", "default": false, "ui": "rejected"}
+      ]
+    },
+    {
+      "id": "sell",
+      "title": "매도",
+      "items": [
+        {"id": "stop_pct", "label": "손절", "type": "pct", "default": 0.01, "min": 0.007, "max": 0.012, "ui": "basic"},
+        {"id": "stop_also_structure", "label": "손절을 박스·MA20과 가까운 쪽", "type": "bool", "default": false, "ui": "advanced"},
+        {"id": "dump_flatten", "label": "급락 전량", "type": "bool", "default": true, "ui": "fixed"},
+        {"id": "first_fade_on", "label": "1차", "type": "bool", "default": true, "ui": "basic"},
+        {"id": "first_fade_frac", "label": "1차 비율", "type": "float", "default": 0.5, "min": 0.3, "max": 0.7, "ui": "basic"},
+        {"id": "first_fade_wait_secs", "label": "1차 대기 초", "type": "int", "default": 12, "min": 6, "max": 20, "unit": "sec", "ui": "basic", "code": "LockConfig.first_fade_wait_secs"},
+        {"id": "first_fade_if_h_grew", "label": "H가 다시 커지면 초 무시", "type": "bool", "default": true, "ui": "basic"},
+        {"id": "second_on", "label": "2차 H≤0", "type": "bool", "default": true, "ui": "basic"},
+        {"id": "failed_break_bars", "label": "실패 돌파 N봉 청산", "type": "int", "default": 2, "min": 1, "max": 3, "ui": "off_by_default"},
+        {"id": "max_hold_min", "label": "최대 보유 분", "type": "int", "default": 25, "min": 15, "max": 40, "ui": "off_by_default"},
+        {"id": "sell_on_d", "label": "D<0.5로 팔기", "type": "bool", "default": false, "ui": "rejected"},
+        {"id": "take_profit_pct", "label": "가격 % 익절", "type": "pct", "default": null, "ui": "rejected", "note": "H 1·2차가 함"},
+        {"id": "trail_pct", "label": "트레일링 %", "type": "pct", "default": null, "ui": "off_by_default", "note": "켜면 H와 겹침"}
+      ]
+    },
+    {
+      "id": "size",
+      "title": "금액 · 위험",
+      "note": "한 종목 = min(위험, 계좌, 호가)",
+      "items": [
+        {"id": "risk_pct", "label": "한 방 계좌 위험", "type": "pct", "default": 0.004, "min": 0.003, "max": 0.005, "ui": "basic"},
+        {"id": "slot1_pct", "label": "자리1 계좌 비율", "type": "pct", "default": 0.30, "min": 0.25, "max": 0.40, "ui": "basic"},
+        {"id": "slot2_pct", "label": "자리2 계좌 비율", "type": "pct", "default": 0.20, "min": 0.15, "max": 0.25, "ui": "basic"},
+        {"id": "tape_3s_frac", "label": "최근 3초 대금의", "type": "pct", "default": 0.10, "min": 0.05, "max": 0.15, "ui": "basic"},
+        {"id": "ask1_frac", "label": "매도1호가 잔량의", "type": "pct", "default": 0.30, "min": 0.15, "max": 0.40, "ui": "basic"},
+        {"id": "boost_size_if_rank1", "label": "점수 1등이면 호가 한도 상향", "type": "bool", "default": false, "ui": "rejected"}
+      ]
+    },
+    {
+      "id": "rank",
+      "title": "여러 종목 줄",
+      "note": "추격만. 걸어두기는 점수에 넣지 않음.",
+      "items": [
+        {"id": "w_count", "label": "건수 속도 무게", "type": "float", "default": 0.40, "min": 0.2, "max": 0.6, "ui": "advanced", "code": "RankConfig.w_count"},
+        {"id": "w_money", "label": "대금 속도 무게", "type": "float", "default": 0.35, "min": 0.2, "max": 0.6, "ui": "advanced", "code": "RankConfig.w_money"},
+        {"id": "w_d", "label": "D 깊이 무게", "type": "float", "default": 0.15, "min": 0.0, "max": 0.3, "ui": "advanced", "code": "RankConfig.w_d"},
+        {"id": "w_h_streak", "label": "H 연속 무게", "type": "float", "default": 0.10, "min": 0.0, "max": 0.2, "ui": "advanced", "code": "RankConfig.w_h_streak"},
+        {"id": "rank_raw_h", "label": "원 H로 비교", "type": "bool", "default": false, "ui": "rejected"},
+        {"id": "rank_wait_buy", "label": "걸어두기 줄 세움", "type": "bool", "default": false, "ui": "rejected"}
+      ]
+    },
+    {
+      "id": "screen",
+      "title": "화면",
+      "items": [
+        {"id": "overlay_3m_1s", "label": "3분과 1초를 한 축에 겹침", "type": "bool", "default": false, "ui": "rejected"},
+        {"id": "replay_before_s", "label": "복기 매수 전 초", "type": "int", "default": 30, "ui": "basic"},
+        {"id": "replay_after_s", "label": "복기 매수 후 초", "type": "int", "default": 60, "ui": "basic"},
+        {"id": "click_bar_secs", "label": "클릭 한 봉의 초", "type": "int", "default": 180, "ui": "fixed"}
+      ]
+    },
+    {
+      "id": "rejected",
+      "title": "안 쓰는 것",
+      "items": [
+        {"id": "price_macd_rsi", "label": "가격 MACD+RSI 타점", "type": "bool", "default": false, "ui": "rejected"},
+        {"id": "bollinger", "label": "볼린저 타점", "type": "bool", "default": false, "ui": "rejected"},
+        {"id": "vwap", "label": "VWAP 타점", "type": "bool", "default": false, "ui": "rejected"},
+        {"id": "fid228", "label": "당일 누적 체결강도(FID 228)", "type": "bool", "default": false, "ui": "rejected"},
+        {"id": "delay_stop", "label": "손절 미루기", "type": "bool", "default": false, "ui": "rejected"}
+      ]
+    }
+  ]
+}
