@@ -1,8 +1,13 @@
 """
 3분봉 국면 엔진.
 
-장중 타점은 H·D가 담당하고, 이 모듈은 완성된 3분봉만으로 방을 고른다.
+장중 타점은 H·D가 담당하고, 이 모듈은 완성된 3분봉만으로 국면을 고른다.
 진행 중 봉·꼬리·전일 3분봉으로 MA20을 시드하지 않는다.
+
+세 시계를 섞지 않는다.
+- 국면: 3분봉이 끝날 때만 (이 모듈)
+- 바닥·천장 점: 다음 3분 속 완성 1분봉 (여기 없음)
+- 타점: 사도 되는 국면에서만 1초 D·H (여기 없음)
 """
 
 from __future__ import annotations
@@ -57,7 +62,7 @@ class PhaseConfig:
 
 @dataclass
 class Bar3m:
-    """완성된 3분봉. end = 봉이 닫힌 시각 (첫 봉은 09:03)."""
+    """완성된 3분봉. end = 봉이 끝난 시각 (첫 봉은 09:03)."""
 
     end: datetime
     open: float
@@ -83,7 +88,7 @@ class PhaseDecision:
     h_engine_on: bool
     new_buy_allowed: bool  # 돌파 시도·눌림만. 실제 체결은 H가 함
     add_buy_allowed: bool
-    fade_exit_allowed: bool  # 급등 방에서 1·2차
+    fade_exit_allowed: bool  # 급등일 때 1·2차
     dump_exit: bool  # 전량
     reason: str
     warmup: bool
@@ -186,7 +191,7 @@ class PhaseEngine:
         self.last = None
 
     def on_clock(self, now: datetime) -> PhaseDecision:
-        """봉이 아직 안 닫힌 동안 호출. 국면은 직전 완성봉 결정을 유지."""
+        """봉이 아직 안 끝난 동안 호출. 국면은 직전 완성봉 결정을 유지. 1초마다 국면을 바꾸지 않음."""
         if now.time() < self.cfg.session_open:
             return self._emit(Phase.PREOPEN, now, "09:00 전. 동시호가 봉은 쓰지 않음")
         if now.time() > self.cfg.session_close:
@@ -404,12 +409,12 @@ class PhaseEngine:
             return False, ""
         if self.box_locked and self.box_high is not None:
             if last.close > self.box_high:
-                return True, f"잠금 박스 상단 {self.box_high:.2f}을 종가가 위로 닫음"
+                return True, f"고정 박스 상단 {self.box_high:.2f}을 종가가 위로 끝냄"
             return False, ""
         if n < self.cfg.min_box_bars:
             return False, ""
         if last.close > prior_high:
-            return True, f"임시박스 상단 {prior_high:.2f}을 종가가 위로 닫음"
+            return True, f"임시박스 상단 {prior_high:.2f}을 종가가 위로 끝냄"
         return False, ""
 
     def _is_pullback(
@@ -465,7 +470,7 @@ class PhaseEngine:
                     return False, ""
             if not self.had_impulse:
                 return False, ""
-            return True, "MA20 위 우상향. 상단 첫 닫힘이 아님. MA20에서 떨어짐"
+            return True, "MA20 위 우상향. 박스 첫 종가 돌파가 아님. MA20에서 떨어짐"
         # MA20 전
         if last.close < open_px * (1.0 + cfg.open_surge_pct):
             return False, ""
