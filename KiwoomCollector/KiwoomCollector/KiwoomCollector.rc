@@ -16,15 +16,16 @@ STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSM
 CAPTION "눌림 데이터 수집기"
 FONT 9, "맑은 고딕", 400, 0, 0x81
 BEGIN
-    PUSHBUTTON      "로그인",       IDC_BTN_LOGIN,     7,   7,  55, 16
-    PUSHBUTTON      "한도 재보기",  IDC_BTN_PROBE,    110,   7,  55, 16
-    EDITTEXT                        IDC_EDIT_PROBECODE, 68,  8,  38, 14, ES_AUTOHSCROLL
-    PUSHBUTTON      "1단계 목록",   IDC_BTN_STEP1,    171,   7,  55, 16
-    PUSHBUTTON      "2단계 분봉",   IDC_BTN_STEP2,    230,   7,  55, 16
-    PUSHBUTTON      "중지",         IDC_BTN_STOP,     289,   7,  40, 16
-    PUSHBUTTON      "폴더 열기",    IDC_BTN_OPENDIR,  333,   7,  50, 16
-    LTEXT           "로그인을 먼저 하세요.", IDC_STATIC_STATUS, 7, 30, 416, 10
-    LISTBOX                         IDC_LIST_LOG,      7,  44, 416, 249,
+    PUSHBUTTON      "로그인",       IDC_BTN_LOGIN,      7,   7,  52, 16
+    RTEXT           "코드",         IDC_STATIC,        62,  11,  24,  9
+    EDITTEXT                        IDC_EDIT_PROBECODE, 90,   8,  38, 14, ES_AUTOHSCROLL
+    PUSHBUTTON      "한도 재보기",  IDC_BTN_PROBE,    132,   7,  58, 16
+    PUSHBUTTON      "1단계 목록",   IDC_BTN_STEP1,    196,   7,  58, 16
+    PUSHBUTTON      "2단계 분봉",   IDC_BTN_STEP2,    260,   7,  58, 16
+    PUSHBUTTON      "중지",         IDC_BTN_STOP,     324,   7,  40, 16
+    PUSHBUTTON      "폴더 열기",    IDC_BTN_OPENDIR,  370,   7,  53, 16
+    LTEXT           "로그인을 먼저 하세요.", IDC_STATIC_STATUS, 7, 31, 416, 10
+    LISTBOX                         IDC_LIST_LOG,      7,  46, 416, 247,
                                     LBS_NOINTEGRALHEIGHT | LBS_NOSEL | WS_VSCROLL | WS_HSCROLL | WS_TABSTOP
 END
 
