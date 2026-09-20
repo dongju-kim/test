@@ -20,5 +20,5 @@ Win32/
 data/
 
 # IDE 가 만들어 주는 OCX 래퍼 (각자 환경에서 생성)
-CKHOpenAPICtrl.h
-CKHOpenAPICtrl.cpp
+KiwoomCollector/KiwoomCollector/CKHOpenAPICtrl.h
+KiwoomCollector/KiwoomCollector/CKHOpenAPICtrl.cpp

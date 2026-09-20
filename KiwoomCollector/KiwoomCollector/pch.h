@@ -1,5 +1,10 @@
 ﻿#pragma once
 
+#ifdef LINUX_SYNTAX_CHECK
+// 리눅스에서 문법 검사할 때만 씁니다. Windows 빌드와는 무관합니다.
+#include "mfc_stub.h"
+#else
+
 // 이 프로젝트는 미리 컴파일된 헤더를 쓰지 않습니다.
 // 버전마다 설정이 달라서 문제가 생기기 쉬워 일부러 껐습니다.
 // (VS 2015 는 stdafx.h, 2017 부터는 pch.h 를 쓰는데 이러면 상관없습니다.)
@@ -24,3 +29,5 @@
 #include <afxcontrolbars.h>
 #include <afxocc.h>
 #include <afxdialogex.h>
+
+#endif // LINUX_SYNTAX_CHECK

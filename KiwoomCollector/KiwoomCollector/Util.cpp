@@ -1,8 +1,10 @@
 ﻿#include "pch.h"
 #include "Util.h"
-#include <shlwapi.h>
 #include <algorithm>
+#ifndef LINUX_SYNTAX_CHECK
+#include <shlwapi.h>
 #pragma comment(lib, "shlwapi.lib")
+#endif
 
 // ---------------------------------------------------------------- 호가 단위
 long TickSize(double price)
@@ -42,7 +44,7 @@ bool IsExcludedSymbol(LPCTSTR code, LPCTSTR name)
         _T("KOSEF"), _T("TIMEFOLIO"), _T("WOORI "), _T("RISE "),
         _T("ETN"), _T("선물"), _T("레버리지"), _T("인버스")
     };
-    for (int i = 0; i < _countof(kWords); ++i)
+    for (int i = 0; i < (int)_countof(kWords); ++i)
     {
         if (n.Find(kWords[i]) >= 0) return true;
     }
@@ -219,7 +221,7 @@ CString YmdMinusDays(LPCTSTR ymd, int days)
     CString s(ymd);
     if (s.GetLength() != 8) return s;
 
-    SYSTEMTIME st = { 0 };
+    SYSTEMTIME st = {};
     st.wYear  = (WORD)_ttoi(s.Left(4));
     st.wMonth = (WORD)_ttoi(s.Mid(4, 2));
     st.wDay   = (WORD)_ttoi(s.Mid(6, 2));

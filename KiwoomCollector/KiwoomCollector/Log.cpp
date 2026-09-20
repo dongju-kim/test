@@ -3,6 +3,7 @@
 #include "Util.h"
 #include "Config.h"
 #include <stdarg.h>
+#include <stdio.h>
 
 namespace
 {

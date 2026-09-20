@@ -3,7 +3,9 @@
 #include "MainDlg.h"
 #include "Config.h"
 #include "Util.h"
+#ifndef LINUX_SYNTAX_CHECK
 #include <shellapi.h>
+#endif
 
 static const UINT_PTR TIMER_NEXT = 1;
 
@@ -283,7 +285,7 @@ void CMainDlg::OnTrReceived(const TrContext& ctx)
 
 void CMainDlg::OnServerMsg(const CString& rqName, const CString& msg)
 {
-    Log::Write(_T("서버: %s"), (LPCTSTR)msg);
+    Log::Write(_T("서버(%s): %s"), (LPCTSTR)rqName, (LPCTSTR)msg);
 
     // 조회 제한에 걸리면 한참 쉬었다 다시 합니다.
     if (msg.Find(_T("제한")) >= 0 || msg.Find(_T("초과")) >= 0)
