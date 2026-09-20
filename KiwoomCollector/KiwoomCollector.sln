@@ -1,0 +1,19 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "KiwoomCollector", "KiwoomCollector\KiwoomCollector.vcxproj", "{6F3A21C4-9B42-4D8E-A15C-7E0D9B2C4A11}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{6F3A21C4-9B42-4D8E-A15C-7E0D9B2C4A11}.Debug|Win32.ActiveCfg = Debug|Win32
+		{6F3A21C4-9B42-4D8E-A15C-7E0D9B2C4A11}.Debug|Win32.Build.0 = Debug|Win32
+		{6F3A21C4-9B42-4D8E-A15C-7E0D9B2C4A11}.Release|Win32.ActiveCfg = Release|Win32
+		{6F3A21C4-9B42-4D8E-A15C-7E0D9B2C4A11}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

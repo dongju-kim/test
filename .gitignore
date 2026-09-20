@@ -1,0 +1,24 @@
+# Visual Studio 빌드 결과
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+Win32/
+*.user
+*.suo
+*.aps
+*.pdb
+*.ilk
+*.obj
+*.tlog
+*.log
+*.idb
+*.exe
+.vs/
+
+# 받은 데이터 (용량이 큽니다. 저장소에 올리지 않습니다)
+data/
+
+# IDE 가 만들어 주는 OCX 래퍼 (각자 환경에서 생성)
+CKHOpenAPICtrl.h
+CKHOpenAPICtrl.cpp

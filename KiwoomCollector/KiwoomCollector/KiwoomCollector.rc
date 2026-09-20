@@ -1,0 +1,31 @@
+﻿#include "Resource.h"
+#include "afxres.h"
+#include "verrsrc.h"
+
+#pragma code_page(65001)
+
+/////////////////////////////////////////////////////////////////////////////
+// 한국어 리소스
+
+#ifdef _WIN32
+LANGUAGE LANG_KOREAN, SUBLANG_DEFAULT
+#endif
+
+IDD_MAIN_DIALOG DIALOGEX 0, 0, 430, 300
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX
+CAPTION "눌림 데이터 수집기"
+FONT 9, "맑은 고딕", 400, 0, 0x81
+BEGIN
+    PUSHBUTTON      "로그인",       IDC_BTN_LOGIN,     7,   7,  55, 16
+    PUSHBUTTON      "한도 재보기",  IDC_BTN_PROBE,    110,   7,  55, 16
+    EDITTEXT                        IDC_EDIT_PROBECODE, 68,  8,  38, 14, ES_AUTOHSCROLL
+    PUSHBUTTON      "1단계 목록",   IDC_BTN_STEP1,    171,   7,  55, 16
+    PUSHBUTTON      "2단계 분봉",   IDC_BTN_STEP2,    230,   7,  55, 16
+    PUSHBUTTON      "중지",         IDC_BTN_STOP,     289,   7,  40, 16
+    PUSHBUTTON      "폴더 열기",    IDC_BTN_OPENDIR,  333,   7,  50, 16
+    LTEXT           "로그인을 먼저 하세요.", IDC_STATIC_STATUS, 7, 30, 416, 10
+    LISTBOX                         IDC_LIST_LOG,      7,  44, 416, 249,
+                                    LBS_NOINTEGRALHEIGHT | LBS_NOSEL | WS_VSCROLL | WS_HSCROLL | WS_TABSTOP
+END
+
+/////////////////////////////////////////////////////////////////////////////
