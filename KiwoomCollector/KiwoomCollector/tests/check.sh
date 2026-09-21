@@ -5,7 +5,7 @@
 set -e
 cd "$(dirname "$0")/.."
 # -Wno-unused-parameter 는 키움이 생성한 khopenapictrl.h 때문입니다. 그 파일은 고치지 않습니다.
-FLAGS="-std=c++17 -Wall -Wextra -Wno-unused-parameter -DLINUX_SYNTAX_CHECK -I. -Itests"
+FLAGS="-std=c++14 -Wall -Wextra -Wno-unused-parameter -DLINUX_SYNTAX_CHECK -I. -Itests"
 
 echo "== 문법 검사 =="
 for f in khopenapictrl.cpp Util.cpp Log.cpp KiwoomApi.cpp Jobs.cpp MainDlg.cpp KiwoomCollector.cpp; do

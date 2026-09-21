@@ -1,6 +1,7 @@
 ﻿#include "pch.h"
 #include "KiwoomCollector.h"
 #include "MainDlg.h"
+#include <locale.h>
 
 CKiwoomCollectorApp theApp;
 
@@ -20,6 +21,10 @@ BOOL CKiwoomCollectorApp::InitInstance()
     AfxEnableControlContainer();
 
     CWinApp::InitInstance();
+
+    // 유니코드 빌드에서 CStdioFile 이 한글을 파일에 쓰려면 로캘이 잡혀 있어야 합니다.
+    // 안 잡으면 종목명이 물음표로 깨집니다. 결과 CSV 는 CP949(한국어 윈도우 기본) 입니다.
+    _tsetlocale(LC_ALL, _T(""));
     SetRegistryKey(_T("NullimCollector"));
 
     CMainDlg dlg;

@@ -219,6 +219,8 @@ inline DWORD GetFileAttributes(LPCTSTR p)
     return S_ISDIR(st.st_mode) ? FILE_ATTRIBUTE_DIRECTORY : 0;
 }
 #define MAX_PATH 260
+#include <clocale>
+inline char* _tsetlocale(int c, const char* l) { return setlocale(c, l); }
 
 // ---------------------------------------------------------------- 창과 대화상자
 struct RECT { int left, top, right, bottom; };
