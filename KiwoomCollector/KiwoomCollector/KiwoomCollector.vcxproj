@@ -82,6 +82,8 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />
+    <ClInclude Include="stdafx.h" />
+    <ClInclude Include="khopenapictrl.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="Config.h" />
     <ClInclude Include="Util.h" />
@@ -92,6 +94,7 @@
     <ClInclude Include="KiwoomCollector.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="khopenapictrl.cpp" />
     <ClCompile Include="Util.cpp" />
     <ClCompile Include="Log.cpp" />
     <ClCompile Include="KiwoomApi.cpp" />

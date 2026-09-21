@@ -221,14 +221,34 @@ inline DWORD GetFileAttributes(LPCTSTR p)
 #define MAX_PATH 260
 
 // ---------------------------------------------------------------- 창과 대화상자
-struct CRect { int l,t,r,b; CRect(int a=0,int bb=0,int c=0,int d=0):l(a),t(bb),r(c),b(d){} };
+struct RECT { int left, top, right, bottom; };
+struct CRect : RECT { CRect(int a=0,int b=0,int c=0,int d=0){ left=a; top=b; right=c; bottom=d; } };
 struct HWND__ {}; typedef HWND__* HWND;
 class CDataExchange {};
+
+typedef unsigned char BYTE;
+typedef long   DISPID;
+typedef unsigned short VARTYPE;
+typedef wchar_t* BSTR;
+struct GUID { unsigned int Data1; unsigned short Data2, Data3; unsigned char Data4[8]; };
+typedef GUID CLSID;
+struct VARIANT { int vt; long lVal; };
+class CCreateContext {};
+#define DISPATCH_METHOD 1
+#define VT_EMPTY   0
+#define VT_I4      3
+#define VT_BSTR    8
+#define VT_VARIANT 12
+#define DECLARE_DYNCREATE(cls)
+#define IMPLEMENT_DYNCREATE(cls, base)
 
 class CWnd
 {
 public:
     virtual ~CWnd() {}
+    void InvokeHelper(DISPID, unsigned short, VARTYPE, void*, const BYTE*, ...) {}
+    BOOL CreateControl(const CLSID&, LPCTSTR, DWORD, const RECT&, CWnd*, UINT,
+                       CFile* = 0, BOOL = 0, BSTR = 0) { return TRUE; }
     HWND GetSafeHwnd() const { return (HWND)0; }
     BOOL EnableWindow(BOOL) { return TRUE; }
     void SetWindowText(LPCTSTR) {}
@@ -283,8 +303,9 @@ public:
 #define ON_WM_TIMER()
 #define ON_WM_DESTROY()
 #define ON_EVENT(cls, id, dispid, fn, vts)
-#define VTS_I4
-#define VTS_BSTR
+#define VTS_I4      "\x03"
+#define VTS_BSTR    "\x08"
+#define VTS_VARIANT "\x0c"
 #define WS_CHILD 0x40000000
 #define WS_VISIBLE 0x10000000
 #define MB_YESNO 4

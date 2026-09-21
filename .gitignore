@@ -19,6 +19,3 @@ Win32/
 # 받은 데이터 (용량이 큽니다. 저장소에 올리지 않습니다)
 data/
 
-# IDE 가 만들어 주는 OCX 래퍼 (각자 환경에서 생성)
-KiwoomCollector/KiwoomCollector/CKHOpenAPICtrl.h
-KiwoomCollector/KiwoomCollector/CKHOpenAPICtrl.cpp

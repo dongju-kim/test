@@ -66,8 +66,8 @@ BOOL CMainDlg::OnInitDialog()
     EnsureDir(PathUnder(Config::LOG_DIR));
 
     // OCX 를 코드로 만듭니다. 대화상자 리소스에 넣지 않아도 됩니다.
-    if (!m_kh.CreateControl(_T("KHOPENAPI.KHOpenAPICtrl.1"), NULL,
-                            WS_CHILD, CRect(0, 0, 0, 0), this, IDC_KHOPENAPI))
+    // 래퍼 클래스가 CLSID 를 들고 있어서 ProgID 로 찾는 것보다 확실합니다.
+    if (!m_kh.Create(NULL, WS_CHILD, CRect(0, 0, 0, 0), this, IDC_KHOPENAPI))
     {
         AfxMessageBox(_T("키움 OpenAPI 컨트롤을 만들지 못했습니다.\n\n")
                       _T("확인할 것\n")

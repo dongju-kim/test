@@ -7,7 +7,7 @@
 // ---------------------------------------------------------------------
 // IDE 가 만들어 준 OCX 래퍼 헤더. 이름이 다르면 이 줄을 고치세요.
 // ---------------------------------------------------------------------
-#include "CKHOpenAPICtrl.h"
+#include "khopenapictrl.h"
 
 class CMainDlg : public CDialogEx, public IKiwoomListener, public CLogSink
 {
@@ -55,7 +55,7 @@ private:
     void SetStatus(LPCTSTR text);
     void EnableButtons(bool idle);
 
-    CKHOpenAPICtrl m_kh;
+    CKhopenapictrl m_kh;
     CKiwoomApi     m_api;
     CListBox       m_log;
     CEdit          m_probeCode;

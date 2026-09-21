@@ -8,10 +8,11 @@
 // Visual Studio 에서
 //   [프로젝트] > [클래스 추가] > [ActiveX 컨트롤에서 MFC 클래스]
 //   에서 "KHOpenAPI Control" 을 고르면 래퍼 클래스가 만들어집니다.
-// 만들어진 헤더 파일 이름이 아래와 다르면 이 줄만 고치세요.
+// 이미 다른 프로젝트에 있으면 그 두 파일을 복사해 오면 됩니다.
+// 클래스 이름이 다르면 아래 두 줄만 고치세요.
 // ---------------------------------------------------------------------
-#include "CKHOpenAPICtrl.h"
-typedef CKHOpenAPICtrl KiwoomCtrl;
+#include "khopenapictrl.h"
+typedef CKhopenapictrl KiwoomCtrl;
 
 static KiwoomCtrl* Ctrl(void* p) { return reinterpret_cast<KiwoomCtrl*>(p); }
 
